@@ -44,8 +44,17 @@ namespace Musoftware
                 Action _func = func;
                 string _eventStr = __event.ToString();
                 _browser.GetBrowser().MainFrame.ExecuteJavaScriptAsync(@"document.getElementById(""" + _elementID + @""")." + _eventStr + " = function(e) { e.preventDefault(); " + _className + ".call(); }");
-           });
+            });
         }
+
+        public static void ChangeText(
+           ChromiumWebBrowser browser,
+           string elementID, string Text)
+        {
+            ChromiumWebBrowser _browser = browser;
+            _browser.GetBrowser().MainFrame.ExecuteJavaScriptAsync(@"document.getElementById(""" + elementID + @""").innerHTML = """ + StringEditing.StringToJs(Text) + "\"");
+        }
+
 
         public static void InitBrowser(ChromiumWebBrowser browser)
         {
@@ -66,6 +75,9 @@ namespace Musoftware
 
                 ThreadPool.QueueUserWorkItem((c) =>
                 {
+                    var address = System.Web.HttpUtility.UrlDecode(browser.Address.Replace("file:///", ""));
+                    var addressDir = Path.GetDirectoryName(address);
+                    bool okToChange = false;
                     try
                     {
                         while (true)
@@ -79,11 +91,13 @@ namespace Musoftware
                             {
                                 try
                                 {
+                                    okToChange = true;
                                     var filenameObj = browser.GetBrowser().MainFrame.EvaluateScriptAsync(
                                      @"document.getElementsByClassName(""loadfile"")[0].getAttribute(""data-filename"")");
                                     filenameObj.Wait();
                                     string filename = filenameObj.Result.Result.ToString();
-                                    string html = File.ReadAllText(filename, Encoding.UTF8);
+
+                                    string html = File.ReadAllText(Path.Combine(addressDir, filename), Encoding.UTF8);
 
                                     var FrameObj = browser.GetBrowser().MainFrame.EvaluateScriptAsync(
                                    @"document.getElementsByClassName(""loadfile"")[0].outerHTML =""" + StringEditing.StringToJs(html) + @"""");
@@ -108,18 +122,30 @@ namespace Musoftware
                         MessageBox.Show(ex.Message);
                         MessageBox.Show(ex.StackTrace);
                     }
+                    finally
+                    {
+                        if (okToChange)
+                        {
+                            string dic = Path.GetDirectoryName(address);
+                            string filep = Path.GetFileNameWithoutExtension(address);
+                            string filepExt = Path.GetExtension(address);
+                            string dic_file = Path.Combine(dic, filep + filepExt);
+                            if (!filep.Contains("temp"))
+                            {
+                                dic_file = Path.Combine(dic, filep + "_temp" + filepExt);
+                            }
+
+                            var SourceTask = browser.GetBrowser().MainFrame.EvaluateScriptAsync(@"document.getElementsByTagName ('html')[0].innerHTML");
+                            SourceTask.Wait();
+                            string Source = SourceTask.Result.Result.ToString();
+
+                            File.WriteAllText(dic_file, Source, Encoding.UTF8);
+                            browser.Load(dic_file);
+                        }
+                    }
                 });
 
             };
-         
-
-
         }
-
-
-
-
-
     }
 }
- 
