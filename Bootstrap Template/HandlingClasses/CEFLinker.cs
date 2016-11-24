@@ -25,6 +25,7 @@ namespace Musoftware
             return builder.ToString();
         }
 
+
         static List<Action> queueLinking = new List<Action>();
 
         public static void LinkFunction(
@@ -36,7 +37,7 @@ namespace Musoftware
             AsJSObject obj = new AsJSObject(func, browser);
 
             string _className = RandomString(5).ToLower();
-            browser.RegisterJsObject(_className, obj);
+            browser.RegisterAsyncJsObject(_className, obj);
             queueLinking.Add(() => {
                 ChromiumWebBrowser _browser = browser;
                 string _elementID = elementID;
@@ -47,12 +48,37 @@ namespace Musoftware
             });
         }
 
+        public static void ExecuteJS(ChromiumWebBrowser _browser, string code)
+        {
+            _browser.GetBrowser().MainFrame.ExecuteJavaScriptAsync(code);
+        }
+
+
+        public static string GetValue(ChromiumWebBrowser _browser, string elementID)
+        {
+            var valueAsync = _browser.GetBrowser().MainFrame.EvaluateScriptAsync(@"document.getElementById(""" + elementID + @""").value");
+            valueAsync.Wait();
+            return valueAsync.Result.Result.ToString();
+        }
+
         public static void ChangeText(
            ChromiumWebBrowser browser,
            string elementID, string Text)
         {
             ChromiumWebBrowser _browser = browser;
             _browser.GetBrowser().MainFrame.ExecuteJavaScriptAsync(@"document.getElementById(""" + elementID + @""").innerHTML = """ + StringEditing.StringToJs(Text) + "\"");
+        }
+
+        public static string ValueOfCombo(ChromiumWebBrowser browser, string elementID)
+        {
+            ChromiumWebBrowser _browser = browser;
+            //var task = _browser.GetBrowser().MainFrame.EvaluateScriptAsync(@"document.getElementById(""" + elementID + @""").innerHTML");
+            var task = _browser.GetBrowser().MainFrame.EvaluateScriptAsync(@"document.getElementById("" + elementID + @"").options[document.getElementById(""" + elementID + @".selectedIndex].value");
+            task.Wait();
+
+            return task.Result.Result.ToString();
+            //var e = document.getElementById("ddlViewBy");
+            //var strUser = e.options[e.selectedIndex].value;
         }
 
 
@@ -104,7 +130,7 @@ namespace Musoftware
                                     FrameObj.Wait();
 
                                 }
-                                catch (FileNotFoundException ex)
+                                catch (FileNotFoundException)
                                 {
                                     var FrameObj = browser.GetBrowser().MainFrame.EvaluateScriptAsync(
                                  @"document.getElementsByClassName(""loadfile"")[0].setAttribute(""class"", """")");
