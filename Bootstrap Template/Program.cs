@@ -1,10 +1,11 @@
-﻿using System;
+﻿using CefSharp;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Bootstrap_Template
+namespace Musoftware
 {
     static class Program
     {
@@ -16,7 +17,13 @@ namespace Bootstrap_Template
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            CefSettings settings = new CefSettings();
+            // Initialize cef with the provided settings
+            Cef.Initialize(settings);
+
+            Application.Run(new Frmmain());
+
+            Cef.Shutdown();
         }
     }
 }
